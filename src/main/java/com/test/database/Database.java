@@ -11,8 +11,7 @@ public class Database {
         Connection connection = null;
         try {
             DriverManager.registerDriver(new Driver());
-            System.out.println("connecting");
-            connection = DriverManager.getConnection("jdbc:mysql://:3306/" + "store_hotelkey", "root", "");
+            connection = DriverManager.getConnection("jdbc:mysql://:3306/" + "store", "root", "");
         } catch (SQLException e) {
             e.printStackTrace();
         }
