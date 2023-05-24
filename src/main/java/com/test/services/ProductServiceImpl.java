@@ -1,56 +1,52 @@
 package com.test.services;
+
 import com.test.database.Database;
 import com.test.domain.product.Product;
+import com.test.domain.sql.CategorySQL;
 import com.test.domain.sql.ProductSQL;
+import com.test.responses.Responses;
 
 import javax.ws.rs.core.Response;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProductServiceImpl implements ProductService {
-    public Response createProduct(Product product) throws SQLException {
+public class ProductServiceImpl {
+    Responses httpResponse = new Responses();
+
+    public Product createProduct(Product product) throws Exception {
         Connection connection = null;
+        PreparedStatement ps = null;
         try {
             connection = Database.getConnection();
-            System.out.println("before insert...");
+            ps = connection.prepareStatement(ProductSQL.CREATE_PRODUCT);
 
-            String sql = ProductSQL.CREATE_PRODUCT;
-            System.out.println("after insert...");
+            ps.setInt(1, product.getId());
+            ps.setString(2, product.getProductName());
+            ps.setInt(3, product.getProductPrice());
+            ps.setInt(4, product.getCategoryId());
+            ps.executeUpdate();
 
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, product.getProductName());
-            statement.setInt(2, product.getProductPrice());
-            statement.setInt(3, product.getCategoryId());
-            statement.execute();
-
-        } catch (SQLException e) {
-            throw e;
         } finally {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
         }
-        return Response.status(201).build();
+        return product;
     }
 
-    public Response deleteProduct(int productId) throws SQLException {
+    public Response deleteProduct(int productId) throws Exception {
         Connection connection = null;
 
         try {
-            System.out.println("Starting the delete process...");
             connection = Database.getConnection();
 
             String query = ProductSQL.DELETE_PRODUCT;
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setInt(1, productId);
-            int deletedProduct = statement.executeUpdate();
+            statement.executeUpdate();
 
-            if (deletedProduct == 0) {
-                return Response.status(404).entity("product not found").build();
-            }
-
-            return Response.status(200).entity("product successfully deleted").build();
+            return httpResponse.success("Product deleted");
 
         } catch (SQLException e) {
             throw e;
@@ -62,7 +58,7 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    public List<Product> getAllProducts() throws SQLException {
+    public List<Product> getAllProducts() throws Exception {
         List<Product> products = new ArrayList<>();
         Connection connection = null;
         try {
@@ -76,53 +72,49 @@ public class ProductServiceImpl implements ProductService {
                 Product product = new Product(resultSet);
                 products.add(product);
             }
+        }
 
-
-            return products;
-
-        } catch (SQLException e) {
-            throw e;
-
-        } finally {
+      finally {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
 
             }
         }
+        return products;
     }
 
 
-    public Response updateProduct(int id, Product product) throws SQLException {
+    public Product updateProduct(int id, Product product) throws Exception {
         Connection connection = null;
 
         try {
             connection = Database.getConnection();
             String query = ProductSQL.UPDATE_PRODUCT;
 
-            System.out.println("before statement");
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setString(1, product.getProductName());
             statement.setDouble(2, product.getProductPrice());
             statement.setInt(3, id);
 
-            ResultSet updatedProduct = statement.executeQuery(query);
-            return Response.status(Response.Status.OK).entity(updatedProduct).build();
+            return (Product) statement.executeQuery(query);
 
-        } catch (SQLException e) {
-            throw e;
+        } catch (Exception e) {
+            httpResponse.error("error -> " + e);
         } finally {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
         }
+        return product;
     }
 
 
-    public Response getProductById(int id) throws SQLException {
-        List<Product> products = new ArrayList<>();
+    public Product getProductById(int id) throws Exception {
+        Product products = null;
         Connection connection = null;
 
         try {
+            System.out.println(id);
             connection = Database.getConnection();
             String query = ProductSQL.GET_PRODUCT_BY_ID;
 
@@ -130,15 +122,11 @@ public class ProductServiceImpl implements ProductService {
             preparedStatement.setInt(1, id);
             ResultSet resultSet = preparedStatement.executeQuery();
 
-            while (resultSet.next()) {
-                Product product = new Product(resultSet);
-                products.add(product);
+            if (resultSet.next()) {
+                products = new Product(resultSet);
             }
 
-
-            return Response.status(Response.Status.OK)
-                    .entity(products)
-                    .build();
+            return products;
 
         } catch (SQLException e) {
             throw e;
@@ -150,36 +138,5 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
-    public Response getProductsByCategory(int categoryId) throws SQLException {
-        List<Product> products = new ArrayList<>();
-        Connection connection = null;
-        System.out.println("im inside try");
-
-        try {
-            System.out.println("im inside try");
-            connection = Database.getConnection();
-            String query = ProductSQL.GET_PRODUCT_BY_CATEGORY;
-
-            PreparedStatement preparedStatement = connection.prepareStatement(query);
-            preparedStatement.setInt(1, categoryId);
-            ResultSet resultSet = preparedStatement.executeQuery();
-
-            while (resultSet.next()) {
-                Product product = new Product(resultSet);
-                products.add(product);
-            }
-
-            return Response.status(Response.Status.OK)
-                    .entity(products)
-                    .build();
-
-        } catch (SQLException e) {
-            throw e;
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
-        }
-    }
 }
 

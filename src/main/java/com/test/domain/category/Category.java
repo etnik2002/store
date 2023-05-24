@@ -4,6 +4,7 @@ import com.test.domain.product.Product;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Category {
@@ -15,8 +16,9 @@ public class Category {
     }
 
     public Category(ResultSet rs) throws SQLException {
-        setCategoryId(rs.getInt("id"));
+        setCategoryId(rs.getInt("categoryId"));
         setCategoryName(rs.getString("categoryName"));
+        setProducts(new ArrayList<>());
     }
 
     public int getCategoryId() {

@@ -1,107 +1,81 @@
 package com.test.resources;
-
 import com.google.gson.Gson;
-import com.test.Store.Store;
-
 import java.sql.*;
 import java.util.List;
+import java.util.UUID;
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
-
 import com.test.domain.product.Product;
+import com.test.responses.Responses;
 import com.test.services.ProductServiceImpl;
 
 @Path("/products")
 public class ProductResource {
 
+    Responses httpResponse = new Responses();
+
     @POST
-    public Response createProduct(Product product) {
-        try {
-            ProductServiceImpl productService = new ProductServiceImpl();
-            Response createdProduct = productService.createProduct(product);
-            return createdProduct;
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
-        }
+    public Response createProduct(String payload) throws Exception {
+        Product product = new Gson().fromJson(payload, Product.class);
+        ProductServiceImpl productService = new ProductServiceImpl();
+        productService.createProduct(product);
+        return httpResponse.success("created");
     }
 
 
     @DELETE
     @Path("/{id}")
-    public Response deleteProduct(@PathParam("id") int id) {
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response deleteProduct(@PathParam("id") int id) throws Exception{
         try {
             ProductServiceImpl productService = new ProductServiceImpl();
-            Response deletedProduct = productService.deleteProduct(id);
-            return deletedProduct;
+            return productService.deleteProduct(id);
         } catch (SQLException e) {
-            System.out.println("Error deleting product: " + e.getMessage());
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
-        }
-    }
-
-    @GET
-    @Path("/{id}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getProductById(@PathParam("id") int id) {
-        try {
-            ProductServiceImpl productService = new ProductServiceImpl();
-            Response product = productService.getProductById(id);
-            return product;
-        } catch (Exception e) {
-            System.out.println("Error getting product by ID: " + e.getMessage());
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+            return httpResponse.error(e);
         }
     }
 
 
+
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getAllProducts() throws SQLException {
-        try {
-            ProductServiceImpl productService = new ProductServiceImpl();
-            List<Product> products = productService.getAllProducts();
-            return Response.status(Response.Status.OK).entity(new Gson().toJson(products)).build();
-        } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Error retrieving data from com.test.database")
-                    .build();
-        }
+    public Response getAllProducts() throws Exception {
+        ProductServiceImpl productService = new ProductServiceImpl();
+        List<Product> products = productService.getAllProducts();
+        return httpResponse.gsonToJson(products);
     }
 
     @PUT
     @Path("/{id}")
-    @Consumes(MediaType.APPLICATION_JSON)
-    public Response updateProduct(@PathParam("id") int id, Product product) throws SQLException {
-        try {
+    @Produces("application/json")
+    public Response updateProduct(@PathParam("id") int id, Product product) throws Exception {
             ProductServiceImpl productService = new ProductServiceImpl();
-            System.out.println("im here...");
-            Response updatedProduct = productService.updateProduct(id, product);
+            Product updatedProduct = productService.updateProduct(id, product);
 
-            if (updatedProduct.getLength() < 1) {
-                return Response.status(404).entity("Product with ID " + id + " not found.").build();
+            if (updatedProduct == null) {
+                return httpResponse.notFound("Product with ID " + id + " not found.");
             }
 
-            return Response.status(200).entity(updatedProduct).build();
-        } catch (SQLException e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .build();
-        }
+            return httpResponse.success(updatedProduct);
+
     }
 
     @GET
-    @Path("/category/{categoryId}")
+    @Path("/{id}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getProductsByCategory(@PathParam("categoryId") int categoryId) throws SQLException {
+    public Response getProductById(@PathParam("id") int id) throws Exception{
         try {
             ProductServiceImpl productService = new ProductServiceImpl();
-            return productService.getProductsByCategory(categoryId);
+            Product product = productService.getProductById(id);
 
+            if (product == null) {
+                return httpResponse.notFound("Product with ID : " + id + " not found");
+            }
+
+            return httpResponse.success(product);
         } catch (Exception e) {
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                    .entity("Error retrieving data from com.test.database")
-                    .build();
+            return null;
         }
     }
-
 
 }

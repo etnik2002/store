@@ -2,6 +2,7 @@ package com.test.domain.product;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -14,20 +15,24 @@ public class Product {
     int categoryId;
     @SerializedName("id")
     int id;
-
     public Product() {
     }
 
-    public Product(ResultSet rs) throws SQLException {
-        id = rs.getInt("id");
-        productName = rs.getString("productName");
-        categoryId = rs.getInt("categoryId");
-        productPrice = rs.getInt("productPrice");
+    public Product(PreparedStatement ps) throws Exception {
+        ps.setInt(1, getId());
+        ps.setString(2, getProductName());
+        ps.setInt(3, getCategoryId());
+        ps.setInt(4, getProductPrice());
     }
 
-    public int getId() {
-        return this.id;
+    public Product(ResultSet rs) throws Exception {
+        id = rs.getInt("id");
+        productName = rs.getString("productName");
+        productPrice = rs.getInt("productPrice");
+        categoryId = rs.getInt("categoryId");
     }
+
+
 
     public String getProductName() {
         return this.productName;
@@ -40,6 +45,10 @@ public class Product {
 
     public void setProductPrice(int productPrice) {
         this.productPrice = productPrice;
+    }
+
+    public int getId() {
+        return id;
     }
 
     public void setId(int id) {

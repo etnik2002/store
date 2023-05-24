@@ -1,83 +1,88 @@
 package com.test.services;
+
 import com.test.database.Database;
 import com.test.domain.order.Order;
+import com.test.domain.product.Product;
 import com.test.domain.sql.OrderSQL;
 import com.test.responses.Responses;
+
 import javax.ws.rs.core.Response;
+import javax.xml.crypto.Data;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class OrderServiceImpl {
     Responses httpResponse = new Responses();
-    public Response getAllOrders() throws SQLException {
+
+    public Order placeOrder(Order order) throws Exception {
         Connection connection = null;
+        PreparedStatement ps = null;
+        try {
+            connection = Database.getConnection();
+            ps = connection.prepareStatement(OrderSQL.PLACE_ORDER);
+            ps.setInt(1, order.getId());
+            ps.setInt(2, order.getProductId());
+            ps.executeUpdate();
+
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            if(connection != null && !connection.isClosed()) {
+                connection.close();
+            }
+        }
+
+        return null;
+    }
+
+    public Response getAllOrders() throws Exception {
+        Connection connection = null;
+        Statement st = null;
+        ResultSet rs = null;
         List<Order> orders = new ArrayList<>();
 
         try {
             connection = Database.getConnection();
-            String query = OrderSQL.GET_ALL_ORDERS;
-
-            Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(query);
-
-            while (resultSet.next()) {
+            st = connection.createStatement();
+            rs = st.executeQuery(OrderSQL.GET_ALL_ORDERS);
+            while (rs.next()) {
                 Order order = new Order();
-                order.setId(resultSet.getInt("id"));
-                order.setProductId(resultSet.getInt("product_id"));
+                order.setId(rs.getInt(1));
+                order.setProductId(rs.getInt(2));
                 orders.add(order);
             }
-
-            return httpResponse.success(orders);
-
-        }catch (Exception e) {
-            return httpResponse.error(e);
         } finally {
-            if(connection != null) {
+            if (connection != null && !connection.isClosed()) {
                 connection.close();
             }
         }
+        return httpResponse.success(orders);
     }
 
-    public Response getOrderById(int id) throws SQLException {
+
+    public Response getOrderById(int id) throws Exception {
         try (Connection connection = Database.getConnection();
-             PreparedStatement ps = connection.prepareStatement("SELECT * FROM orders WHERE id = ?")) {
-
-            ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
-
-            List<Order> orderList = new ArrayList<>();
-            while(rs.next()){
-                Order orderModel = new Order();
-                orderModel.setId(rs.getInt("id"));
-                orderModel.setProductId(rs.getInt("product_id"));
-                orderList.add(orderModel);
-            }
-
-            return httpResponse.success(orderList);
-
-        } catch (SQLException e) {
-            return httpResponse.error(e);
-        }
-    }
-
-    public Response getOrdersWithSpecificProduct(int id) throws SQLException {
-        try(Connection connection = Database.getConnection();
-            PreparedStatement ps = connection.prepareStatement(OrderSQL.GET_ORDERS_WITH_SPECIFIC_PRODUCT)) {
-            Responses httpResponses = new Responses();
+             PreparedStatement ps = connection.prepareStatement(OrderSQL.GET_ORDER_BY_ID)) {
 
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
 
             List<Order> orders = new ArrayList<>();
-            while (rs.next()){
+            List<Product> products = new ArrayList<>();
+
+            if (rs.next()) {
                 Order order = new Order();
                 order.setId(rs.getInt("id"));
                 order.setProductId(rs.getInt("product_id"));
                 orders.add(order);
+                products.add(new Product(rs));
+                order.setProducts(products);
+            } else {
+                return httpResponse.notFound("order with id : " + id + " not found");
             }
 
-            return httpResponse.successGsonResponse(orders);
+            return httpResponse.gsonToJson(orders);
 
         } catch (SQLException e) {
             return httpResponse.error(e);

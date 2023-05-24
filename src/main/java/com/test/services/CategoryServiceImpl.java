@@ -1,30 +1,28 @@
 package com.test.services;
-import com.google.gson.Gson;
+
 import com.test.database.Database;
 import com.test.domain.category.Category;
 import com.test.domain.product.Product;
 import com.test.domain.sql.CategorySQL;
 import com.test.responses.Responses;
-import javax.ws.rs.PathParam;
+
 import javax.ws.rs.core.Response;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CategoryServiceImpl {
+    Responses httpResponse = new Responses();
 
-    public Response createCategory(Category category) throws SQLException {
+    public Response createCategory(Category category) throws Exception {
         Connection connection = null;
-        Responses httpResponse = new Responses();
+        PreparedStatement ps = null;
 
         try {
             connection = Database.getConnection();
-            String sql = CategorySQL.CREATE_CATEGORY;
-
-            PreparedStatement statement = connection.prepareStatement(sql);
-            statement.setString(1, category.getCategoryName());
-            statement.setInt(2, category.getCategoryId());
-            statement.execute();
+            ps = connection.prepareStatement(CategorySQL.CREATE_CATEGORY);
+            ps.setString(1, category.getCategoryName());
+            ps.executeUpdate();
 
         } catch (SQLException e) {
             System.out.println("error happened " + e);
@@ -34,13 +32,16 @@ public class CategoryServiceImpl {
             if (connection != null) {
                 connection.close();
             }
+            if(ps != null) {
+                ps.close();
+            }
         }
         return httpResponse.created("product created successfully");
     }
 
-    public Response getAllCategories() throws SQLException {
+
+    public Response getAllCategories() throws Exception {
         Connection connection = null;
-        Responses httpResponse = new Responses();
 
         try {
             List<Category> categories = new ArrayList<>();
@@ -67,32 +68,29 @@ public class CategoryServiceImpl {
     }
 
 
-    public Response getCategoryWithProducts(@PathParam("id") int id) throws SQLException {
-        System.out.println("im inside getProductsByCategory");
+    public Category getCategoryById(int id) throws Exception {
         Connection connection = null;
-        List<Category> categories = new ArrayList<>();
+        Category category = null;
         List<Product> products = new ArrayList<>();
-        Responses httpResponse = new Responses();
 
         try {
-            System.out.println("im inside try");
             connection = Database.getConnection();
-            String query = CategorySQL.GET_PRODUCTS_FROM_CATEGORY;
+            String query = CategorySQL.GET_CATEGORY_BY_ID;
 
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setInt(1, id);
             ResultSet resultSet = statement.executeQuery();
 
             while (resultSet.next()) {
-                Category category = new Category(resultSet);
-                categories.add(category);
+                category = new Category(resultSet);
                 products.add(new Product(resultSet));
                 category.setProducts(products);
             }
 
-            return httpResponse.successGsonResponse(categories);
-        } catch (Exception e) {
-            return httpResponse.error(e);
+            return category;
+        } catch (SQLException e) {
+            System.out.println("Error in getting Category by id");
+            throw e;
         } finally {
             if (connection != null && !connection.isClosed()) {
                 connection.close();

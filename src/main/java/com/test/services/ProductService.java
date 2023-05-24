@@ -7,12 +7,13 @@ import java.sql.*;
 import java.util.List;
 
 public interface ProductService {
-    Response createProduct(Product product) throws SQLException;
+    Product createProduct(Product product) throws Exception;
 
-    Response deleteProduct(int productId) throws SQLException;
+    Response deleteProduct(int productId) throws Exception;
 
-    List<Product> getAllProducts() throws SQLException;
+    List<Product> getAllProducts() throws Exception;
 
+    Product getProductById(int id) throws Exception;
 
-    Response updateProduct(int id, Product product) throws SQLException;
+    Product updateProduct(int id, Product product) throws Exception;
 }
